@@ -19,54 +19,39 @@ concurrency:
 jobs:
   build:
     name: Build Nexus archive
-    runs-on: windows-2022
+    runs-on: ubuntu-latest
     timeout-minutes: 45
-
-    defaults:
-      run:
-        shell: pwsh
 
     steps:
       - name: Check out source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install vcpkg
-        run: |
-          $root = Join-Path $env:RUNNER_TEMP "vcpkg"
-          git clone https://github.com/microsoft/vcpkg.git $root
-          git -C $root checkout cc288af760054fa489574bd8e22d05aa8fa01e5c
-          & "$root\bootstrap-vcpkg.bat" -disableMetrics
-          "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
-
       - name: Build Windows DLL and archive
         run: |
-          cmake -S . -B build -A x64 `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" `
-            -DVCPKG_APPLOCAL_DEPS=OFF `
-            -DVCPKG_TARGET_TRIPLET=x64-windows `
-            -DVCPKG_HOST_TRIPLET=x64-windows
-          cmake --build build --config Release --target package_mod --parallel
+          mkdir -p .cache/vcpkg
+          docker build -t smart-spell-tome-sorting-builder -f Containerfile .
+          docker run --rm \
+            -v "$PWD:/work" \
+            -v "$PWD/.cache/vcpkg:/root/.cache/vcpkg" \
+            -v smart-spell-tome-sorting-vcpkg-cache:/vcpkg-cache \
+            smart-spell-tome-sorting-builder
 
       - name: Verify package
         id: package
+        shell: bash
         run: |
-          $archives = @(Get-ChildItem dist -Filter "SmartSpellTomeSorting-*.zip")
-          if ($archives.Count -ne 1) {
-            throw "Expected one versioned archive, found $($archives.Count)."
-          }
+          shopt -s nullglob
+          archives=(dist/SmartSpellTomeSorting-*.zip)
+          if (( ${#archives[@]} != 1 )); then
+            echo "Expected one versioned archive, found ${#archives[@]}." >&2
+            exit 1
+          fi
 
-          $archive = $archives[0]
-          $entries = tar -tf $archive.FullName
-          if ($entries -notcontains "SKSE/Plugins/SmartSpellTomeSorting.dll" -or
-              $entries -notcontains "SKSE/Plugins/SmartSpellTomeSorting.toml") {
-            throw "Archive is missing required mod files."
-          }
-
-          $hash = (Get-FileHash $archive.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $($archive.Name)" | Out-File "$($archive.FullName).sha256" -Encoding ascii
-          "archive=$($archive.FullName)" >> $env:GITHUB_OUTPUT
-          "name=$($archive.BaseName)" >> $env:GITHUB_OUTPUT
+          archive="${archives[0]}"
+          unzip -t "$archive"
+          sha256sum "$archive" > "$archive.sha256"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$archive" .zip)" >> "$GITHUB_OUTPUT"
 
       - name: Upload Nexus-ready archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

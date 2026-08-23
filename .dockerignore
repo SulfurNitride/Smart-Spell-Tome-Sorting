@@ -1,0 +1,6 @@
+.cache/
+.git/
+.github/
+.vscode/
+build/
+dist/
