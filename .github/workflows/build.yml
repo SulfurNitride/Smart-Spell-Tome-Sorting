@@ -1,0 +1,61 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Nexus archive
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Test metadata
+        run: ./scripts/test-metadata.sh
+
+      - name: Build Windows DLL and archive
+        run: ./scripts/build-container.sh
+
+      - name: Verify package
+        id: package
+        shell: bash
+        run: |
+          shopt -s nullglob
+          archives=(dist/SmartSpellTomeSorting-*.zip)
+          if (( ${#archives[@]} != 1 )); then
+            echo "Expected one versioned archive, found ${#archives[@]}." >&2
+            exit 1
+          fi
+
+          archive="${archives[0]}"
+          unzip -t "$archive"
+          sha256sum "$archive" > "$archive.sha256"
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$archive" .zip)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Nexus-ready archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.archive }}.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

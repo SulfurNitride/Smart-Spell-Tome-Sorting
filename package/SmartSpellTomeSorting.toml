@@ -1,0 +1,21 @@
+# Changes take effect after restarting Skyrim.
+
+# Generate compact names such as "Alt. Nov. Spell Tome: Candlelight".
+CompactTomeNames = true
+
+# Prefix learned spells in the Magic menu, for example
+# "Dest. Nov. Spell: Flames". Disable this to keep their original names while
+# retaining the hidden school -> rank -> name sorting.
+PrefixMagicSpellNames = true
+
+# Use school -> rank -> spell name when the vendor's Name sort is active.
+SortVendorMenu = true
+
+# Apply the same invisible school -> rank -> name order to known spells in the
+# Magic menu.
+SortMagicMenu = true
+
+# Show SkyUI's read-eye for a tome whenever its spell is already known,
+# including starting spells such as Healing. This only changes the displayed
+# inventory row; it does not alter the book record or write anything to saves.
+KnownSpellTomesShowAsRead = true
