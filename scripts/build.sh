@@ -11,7 +11,6 @@ cmake \
     -DVCPKG_APPLOCAL_DEPS=OFF \
     -DVCPKG_OVERLAY_TRIPLETS=/work/cmake/triplets \
     -DVCPKG_TARGET_TRIPLET=x64-windows-clang-linux \
-    -DVCPKG_HOST_TRIPLET=x64-linux \
-    -DBUILD_TESTING=OFF
+    -DVCPKG_HOST_TRIPLET=x64-linux
 
 cmake --build /work/build --target package_mod --parallel

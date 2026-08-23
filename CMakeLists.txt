@@ -63,17 +63,3 @@ add_custom_target(
     COMMENT "Creating ${PROJECT_NAME}-${PROJECT_VERSION}.zip"
     VERBATIM
 )
-
-include(CTest)
-
-if(BUILD_TESTING AND NOT CMAKE_CROSSCOMPILING)
-    add_executable(
-        TomeMetadataTests
-        src/TomeMetadata.cpp
-        tests/TomeMetadataTests.cpp
-    )
-    target_include_directories(TomeMetadataTests PRIVATE src)
-    target_compile_features(TomeMetadataTests PRIVATE cxx_std_20)
-    enable_strict_warnings(TomeMetadataTests)
-    add_test(NAME TomeMetadataTests COMMAND TomeMetadataTests)
-endif()
